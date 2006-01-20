@@ -1,0 +1,188 @@
+#!/usr/bin/perl -w
+#
+# sep-offprint 0.3 - John MacFarlane - May 25, 2005
+#
+# produces a PDF or postscript "offprint" of a Stanford 
+# Encyclopedia of Philosophy (SEP) article
+#
+# Argument is an entry name from SEP, as it appears in the URL.
+# For example, to get the article on classical logic, which is at
+# http://plato.stanford.edu/entries/logic-classical/, just type
+#
+#   sep-offprint logic-classical
+#
+# if this script is executable and in your path, otherwise
+#
+#   perl sep-offprint logic-classical
+#
+# and it will create logic-classical.pdf.  If you list multiple entries,
+# sep-offprint will get them all:  for example,
+#
+#   sep-offprint frege russell wittgenstein
+#
+# There are many command-line options.  For a list, type
+#
+#   sep-offprint --help
+#
+# The programs html2ps and ps2pdf must be in the user's path:
+#
+# html2ps can be found at http://user.it.uu.se/~jan/html2ps.html.
+# Download the tarball or zip file and run the "install" script.
+#
+# ps2pdf is part of Ghostscript -- many users will have it
+# already:  http://www.cs.wisc.edu/~ghost/doc/AFPL/get851.htm
+#
+# For more information and updates, see 
+# http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
+#
+
+use Getopt::Long;
+
+sub printhelp {
+    die 
+"Produces a PDF offprint from a Stanford Encyclopedia of Philosophy article.
+(http://plato.stanford.edu/)
+
+Usage:                 sep-offprint [options] <entry names>
+
+Examples:              sep-offprint russell
+                       sep-offprint frege russell wittgenstein
+                       sep-offprint --1up --ps --paper a4 frege
+                       sep-offprint --1up --fontfamily Helvetica frege
+
+Options:
+
+--1up                  print one page per sheet, portrait orientation
+--2up                  print two pages per sheet, landscape orientation (default) 
+--ps                   produce postscript (PS) output
+--pdf                  produce PDF output (default)
+--font <font>          use <font> (Times, Helvetica, Palatino, Courier) (default Times)
+--size <size>          use <size> (10pt, 12pt, 14pt, 16pt) (default 14pt)
+--align <align>        use <align> (left, justified) (default justified)
+--paper <papersize>    specify <papersize> (letter, legal, a4) (default letter)
+--localpath <path>     look for entry in a subdirectory of <path> on local filesystem
+--help                 this message
+--version              prints version number\n";
+}
+
+GetOptions( '1up|1' => \$oneup,
+            '2up|2' => \$twoup,
+            'ps' => \$ps,
+            'pdf' => \$pdf,
+            'font=s' => \$fontfamily,
+            'size=s' => \$fontsize,
+            'align=s' => \$textalign,
+            'paper=s' => \$papersize,
+            'localpath=s' => \$localpath,
+            'help|h' => \$help,
+            'version|v' => \$version);
+
+if ($help) {&printhelp;};
+if ($version) {die "sep-offprint ver. 0.3\n";}; 
+if (not ($pdf or $ps)) {$pdf=1};
+if ($oneup) {$twoup = 0} else {$twoup = 1};
+if (not $fontsize) {$fontsize = "14pt"};
+if (not $fontfamily) {$fontfamily = "Times"};
+if (not $textalign) {$textalign = "justify"};
+if (not $papersize) {$papersize = "letter"};
+if ($localpath) {$pathname = $localpath} else {$pathname = "http://plato.stanford.edu/entries"};
+
+if ($#ARGV < 0) {&printhelp;};
+
+#
+# Create blank html file to work around html2ps bug.
+#
+# Without this blank file after notes.html, html2ps will cut off 
+# the last page of an entry if it occurs in the left column in 2up mode.
+# 
+
+$blank = "blankhtml" . time;
+
+open FILE, ">$blank" or die "unable to open $blank: $!";
+
+
+print FILE <<EOF; 
+<html>
+<head>
+<title>&nbsp;</title>
+</head>
+<body>
+<p>&nbsp;</p>
+</body>
+</html>
+EOF
+
+close FILE;
+
+#
+# For each argument, create a configuration file with appropriate footers
+# and run html2ps and html2pdf on that argument.
+#
+
+foreach $entryname (@ARGV) {
+
+# remove uppercase and spaces:
+$entryname =~ tr/A-Z/a-z/;
+$entryname =~ tr/ /-/;
+
+# remove SEP pathname if specified:
+$entryname =~ s{http://plato.stanford.edu/entries/}{};
+# remove /index.html if specified:
+$entryname =~ s{/.*}{};
+
+#
+# Create temporary configuration file
+#
+
+$html2psrc = "html2psrc" . time;
+
+open FILE, ">$html2psrc" or die "unable to open $html2psrc: $!";
+
+print FILE <<EOF; 
+BODY {
+    font-size: $fontsize; 
+    font-family: $fontfamily; 
+    text-align: $textalign; 
+}
+\@page { 
+    margin-left: 2.5cm; 
+    margin-right: 2.5cm; 
+    margin-top: 2.5cm; 
+    margin-bottom: 2.5cm; 
+}
+\@html2ps { 
+    option { 
+        twoup: $twoup; 
+        landscape: $twoup; 
+        number: 0; 
+    } 
+    paper { type: $papersize } 
+	header {
+	    right: "STANFORD ENCYCLOPEDIA OF PHILOSOPHY";
+		left: \$T;
+    }
+    footer {
+        left: \$N;
+        right: "$pathname/$entryname";
+    }
+}
+EOF
+
+close FILE;
+
+# name of temporary file to hold postscript output of html2ps
+$pstemp = $entryname . time;
+
+system("html2ps -D -f $html2psrc -o $pstemp $pathname/$entryname/index.html $pathname/$entryname/notes.html $blank");
+
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $entryname.pdf") || print "Created $entryname.pdf.\n";};
+
+if ($ps) {rename($pstemp, "$entryname.ps"); print "Created $entryname.ps\n";} else {unlink $pstemp;} ;
+
+# delete temporary config file
+unlink $html2psrc;
+}
+
+# delete blank html file
+unlink $blank;
+
