@@ -103,7 +103,7 @@ if (not $papersize) {$papersize = "letter"};
 
 $temp = tempdir ( CLEANUP => 1 );
 
-$dir = getcwd;
+$current = getcwd;
 
 # Get all the source files and put them in temp directory $temp
 
@@ -116,8 +116,6 @@ else {
     system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/index.html");
     system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/notes.html");
 };
-
-
 
 #
 # Create blank html file to work around html2ps bug.
@@ -144,12 +142,8 @@ EOF
 close FILE;
 
 #
-# For each argument, create a configuration file with appropriate footers
+# Create a configuration file with appropriate footers
 # and run html2ps and html2pdf on that argument.
-#
-
-#
-# Create temporary configuration file
 #
 
 $html2psrc = "html2psrc" . time;
@@ -191,37 +185,44 @@ close FILE;
 # name of temporary file to hold postscript output of html2ps
 $pstemp = $entryname . time;
 
-# preprocess html:
-# takes filename as parameter
-# remove navigation bars, etc.
-# replace &#9633; entity reference with appropriate image 
+#
+# preprocess html: takes filename as parameter
+# (1) remove navigation bars, etc.
+# (2) replace &#9633; entity reference with appropriate image 
+#
 
 sub preprocess_html {
 	my $file = $_[0];
+	# slurp contents of file
 	{
 		local( $/, *FILE ); 
 		open(FILE, "< $file") or die "Couldn't open $file to read";
 		$contents = <FILE>;
 		close(FILE);
 	}
+	# get rid of header stuff
 	$contents =~ s/<body>.*?<h1>/<body><div id="content"><h1>/s;
-	$contents =~ s/&\#9633;/<img alt="Box" src="http:\/\/plato.stanford.edu\/symbols\/Box.gif">/g;
+	# replace unicode character references
+	%replacements = (
+					 "&\#9633;" => "Box.gif"
+					 );
+	while ( my ($ref, $img) = each(%replacements) ) {
+	$contents =~ s/$ref/<img alt="Box" src="http:\/\/plato.stanford.edu\/symbols\/$img">/g;
+    }
+	# write back to file
 	open(FILE, "> $file") or die "Couldn't open $file to write"; 
 	print FILE $contents;
 	close(FILE);
 }
 
-if (-e "notes.html") { $notes = "notes.html"; preprocess_html("notes.html"); } else { $notes = ""; };
-
 preprocess_html("index.html");
+
+if (-e "notes.html") { $notes = "notes.html"; preprocess_html("notes.html"); } else { $notes = ""; };
 
 system("html2ps -D -f $html2psrc -o $pstemp index.html $notes $blank");
 
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $dir/$entryname.pdf") || print "Created $entryname.pdf.\n";};
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
 
-if ($ps) {rename($pstemp, "$dir/$entryname.ps"); print "Created $entryname.ps\n";};
+if ($ps) {system("cp $pstemp $current/$entryname.ps") || print "Created $entryname.ps\n";};
 
-# note: temporary directory will be deleted on exit
-
-chdir $dir;
-
+# note: temporary directory will be deleted automatically on exit
