@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 #
+# sep-offprint 0.4 - John MacFarlane - August 22, 2006
 # sep-offprint 0.3 - John MacFarlane - May 25, 2005
 #
 # produces a PDF or postscript "offprint" of a Stanford 
@@ -15,16 +16,15 @@
 #
 #   perl sep-offprint logic-classical
 #
-# and it will create logic-classical.pdf.  If you list multiple entries,
-# sep-offprint will get them all:  for example,
-#
-#   sep-offprint frege russell wittgenstein
+# and it will create logic-classical.pdf. 
 #
 # There are many command-line options.  For a list, type
 #
 #   sep-offprint --help
 #
-# The programs html2ps and ps2pdf must be in the user's path:
+# The programs wget, html2ps, and ps2pdf must be in the user's path:
+#
+# wget can be found at http://www.gnu.org/software/wget/.
 #
 # html2ps can be found at http://user.it.uu.se/~jan/html2ps.html.
 # Download the tarball or zip file and run the "install" script.
@@ -37,13 +37,15 @@
 #
 
 use Getopt::Long;
+use File::Temp qw/ tempdir /;
+use Cwd;
 
 sub printhelp {
     die 
 "Produces a PDF offprint from a Stanford Encyclopedia of Philosophy article.
 (http://plato.stanford.edu/)
 
-Usage:                 sep-offprint [options] <entry names>
+Usage:                 sep-offprint [options] <entry name>
 
 Examples:              sep-offprint russell
                        sep-offprint frege russell wittgenstein
@@ -77,6 +79,19 @@ GetOptions( '1up|1' => \$oneup,
             'help|h' => \$help,
             'version|v' => \$version);
 
+if ($#ARGV < 0) {&printhelp;};
+$entryname = $ARGV[0];
+
+# remove uppercase and spaces:
+$entryname =~ tr/A-Z/a-z/;
+$entryname =~ tr/ /-/;
+
+# remove SEP temp if specified:
+$entryname =~ s{http://plato.stanford.edu/entries/}{};
+# remove /index.html if specified:
+$entryname =~ s{/.*}{};
+
+
 if ($help) {&printhelp;};
 if ($version) {die "sep-offprint ver. 0.3\n";}; 
 if (not ($pdf or $ps)) {$pdf=1};
@@ -85,9 +100,24 @@ if (not $fontsize) {$fontsize = "14pt"};
 if (not $fontfamily) {$fontfamily = "Times"};
 if (not $textalign) {$textalign = "justify"};
 if (not $papersize) {$papersize = "letter"};
-if ($localpath) {$pathname = $localpath} else {$pathname = "http://plato.stanford.edu/entries"};
 
-if ($#ARGV < 0) {&printhelp;};
+$temp = tempdir ( CLEANUP => 1 );
+
+$dir = getcwd;
+
+# Get all the source files and put them in temp directory $temp
+
+if ($localpath) {
+    system("cp $localpath/$entryname/*.* $temp/");
+    chdir $temp;
+} 
+else {
+    chdir $temp;
+    system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/index.html");
+    system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/notes.html");
+};
+
+
 
 #
 # Create blank html file to work around html2ps bug.
@@ -99,7 +129,6 @@ if ($#ARGV < 0) {&printhelp;};
 $blank = "blankhtml" . time;
 
 open FILE, ">$blank" or die "unable to open $blank: $!";
-
 
 print FILE <<EOF; 
 <html>
@@ -118,17 +147,6 @@ close FILE;
 # For each argument, create a configuration file with appropriate footers
 # and run html2ps and html2pdf on that argument.
 #
-
-foreach $entryname (@ARGV) {
-
-# remove uppercase and spaces:
-$entryname =~ tr/A-Z/a-z/;
-$entryname =~ tr/ /-/;
-
-# remove SEP pathname if specified:
-$entryname =~ s{http://plato.stanford.edu/entries/}{};
-# remove /index.html if specified:
-$entryname =~ s{/.*}{};
 
 #
 # Create temporary configuration file
@@ -163,7 +181,7 @@ BODY {
     }
     footer {
         left: \$N;
-        right: "$pathname/$entryname";
+        right: "http://plato.stanford.edu/entries/$entryname";
     }
 }
 EOF
@@ -173,16 +191,37 @@ close FILE;
 # name of temporary file to hold postscript output of html2ps
 $pstemp = $entryname . time;
 
-system("html2ps -D -f $html2psrc -o $pstemp $pathname/$entryname/index.html $pathname/$entryname/notes.html $blank");
+# preprocess html:
+# takes filename as parameter
+# remove navigation bars, etc.
+# replace &#9633; entity reference with appropriate image 
 
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $entryname.pdf") || print "Created $entryname.pdf.\n";};
-
-if ($ps) {rename($pstemp, "$entryname.ps"); print "Created $entryname.ps\n";} else {unlink $pstemp;} ;
-
-# delete temporary config file
-unlink $html2psrc;
+sub preprocess_html {
+	my $file = $_[0];
+	{
+		local( $/, *FILE ); 
+		open(FILE, "< $file") or die "Couldn't open $file to read";
+		$contents = <FILE>;
+		close(FILE);
+	}
+	$contents =~ s/<body>.*?<h1>/<body><div id="content"><h1>/s;
+	$contents =~ s/&\#9633;/<img alt="Box" src="http:\/\/plato.stanford.edu\/symbols\/Box.gif">/g;
+	open(FILE, "> $file") or die "Couldn't open $file to write"; 
+	print FILE $contents;
+	close(FILE);
 }
 
-# delete blank html file
-unlink $blank;
+if (-e "notes.html") { $notes = "notes.html"; preprocess_html("notes.html"); } else { $notes = ""; };
+
+preprocess_html("index.html");
+
+system("html2ps -D -f $html2psrc -o $pstemp index.html $notes $blank");
+
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $dir/$entryname.pdf") || print "Created $entryname.pdf.\n";};
+
+if ($ps) {rename($pstemp, "$dir/$entryname.ps"); print "Created $entryname.ps\n";};
+
+# note: temporary directory will be deleted on exit
+
+chdir $dir;
 
