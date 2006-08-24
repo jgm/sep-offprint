@@ -22,15 +22,15 @@
 #
 #   sep-offprint --help
 #
-# The programs wget, html2ps, and ps2pdf must be in the user's path:
-#
-# wget can be found at http://www.gnu.org/software/wget/.
+# The programs html2ps and ps2pdf must be in the user's path:
 #
 # html2ps can be found at http://user.it.uu.se/~jan/html2ps.html.
 # Download the tarball or zip file and run the "install" script.
 #
 # ps2pdf is part of Ghostscript -- many users will have it
 # already:  http://www.cs.wisc.edu/~ghost/doc/AFPL/get851.htm
+#
+# In addition, the LWP package for Perl must be installed.
 #
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
@@ -115,8 +115,8 @@ if ($localpath) {
 else {
 	$footer = "http://plato.stanford.edu/entries/$entryname/";
     chdir $temp;
-    system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/index.html");
-    system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/notes.html");
+    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/index.html");
+    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/notes.html");
 };
 
 #
