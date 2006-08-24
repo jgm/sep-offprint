@@ -38,6 +38,7 @@
 
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
+use File::Copy;
 use Cwd;
 
 sub printhelp {
@@ -86,11 +87,10 @@ $entryname = $ARGV[0];
 $entryname =~ tr/A-Z/a-z/;
 $entryname =~ tr/ /-/;
 
-# remove SEP temp if specified:
+# remove SEP url if specified:
 $entryname =~ s{http://plato.stanford.edu/entries/}{};
 # remove /index.html if specified:
 $entryname =~ s{/.*}{};
-
 
 if ($help) {&printhelp;};
 if ($version) {die "sep-offprint ver. 0.3\n";}; 
@@ -108,10 +108,12 @@ $current = getcwd;
 # Get all the source files and put them in temp directory $temp
 
 if ($localpath) {
-    system("cp $localpath/$entryname/*.* $temp/");
+	$footer = "$localpath/$entryname/";
+	copy(<$localpath/$entryname/*.*>,$temp);
     chdir $temp;
 } 
 else {
+	$footer = "http://plato.stanford.edu/entries/$entryname/";
     chdir $temp;
     system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/index.html");
     system("wget --quiet -nd -p http://plato.stanford.edu/entries/$entryname/notes.html");
@@ -175,7 +177,7 @@ BODY {
     }
     footer {
         left: \$N;
-        right: "http://plato.stanford.edu/entries/$entryname";
+        right: $footer;
     }
 }
 EOF
@@ -183,7 +185,7 @@ EOF
 close FILE;
 
 # name of temporary file to hold postscript output of html2ps
-$pstemp = $entryname . time;
+$pstemp = "pstemp";
 
 #
 # preprocess html: takes filename as parameter
@@ -207,7 +209,9 @@ sub preprocess_html {
 					 "&\#9633;" => "Box.gif"
 					 );
 	while ( my ($ref, $img) = each(%replacements) ) {
-	$contents =~ s/$ref/<img alt="Box" src="http:\/\/plato.stanford.edu\/symbols\/$img">/g;
+		$alt = $img;
+		$alt =~ s/\.*?$//;
+		$contents =~ s/$ref/<img alt="$alt" src="http:\/\/plato.stanford.edu\/symbols\/$img">/g;
     }
 	# write back to file
 	open(FILE, "> $file") or die "Couldn't open $file to write"; 
@@ -216,13 +220,18 @@ sub preprocess_html {
 }
 
 preprocess_html("index.html");
-
-if (-e "notes.html") { $notes = "notes.html"; preprocess_html("notes.html"); } else { $notes = ""; };
+if (-e "notes.html") { 
+	$notes = "notes.html"; 
+	preprocess_html("notes.html"); 
+	} 
+else { 
+	$notes = ""; 
+	};
 
 system("html2ps -D -f $html2psrc -o $pstemp index.html $notes $blank");
 
 if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
 
-if ($ps) {system("cp $pstemp $current/$entryname.ps") || print "Created $entryname.ps\n";};
+if ($ps) {copy($pstemp, "$current/$entryname.ps") && print "Created $entryname.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
