@@ -109,7 +109,9 @@ $current = getcwd;
 
 if ($localpath) {
 	$footer = "$localpath/$entryname/";
-	copy(<$localpath/$entryname/*.*>,$temp);
+    while (<$localpath/$entryname/*.*>) {
+      copy($_,$temp) 
+    };
     chdir $temp;
 } 
 else {
@@ -206,12 +208,18 @@ sub preprocess_html {
 	$contents =~ s/<body>.*?<h1>/<body><div id="content"><h1>/s;
 	# replace unicode character references
 	%replacements = (
-					 "&\#9633;" => "Box.gif"
+                     "&\#133;"  => "&hellip;",
+                     "&\#145;"  => "&lsquo;",
+                     "&\#146;"  => "&rsquo;",
+                     "&\#147;"  => "&ldquo;",
+                     "&\#148;"  => "&rdquo;",
+                     "&\#149;"  => "&bull;",
+                     "&\#150;"  => "&minus;", 
+					 "&\#8463;" => "<img alt=\"hbar\" src=\"http:\/\/plato.stanford.edu\/symbols\/hbar.gif\">"
+					 "&\#9633;" => "<img alt=\"Box\" src=\"http:\/\/plato.stanford.edu\/symbols\/Box.gif\">"
 					 );
-	while ( my ($ref, $img) = each(%replacements) ) {
-		$alt = $img;
-		$alt =~ s/\.*?$//;
-		$contents =~ s/$ref/<img alt="$alt" src="http:\/\/plato.stanford.edu\/symbols\/$img">/g;
+	while ( my ($ref, $rep) = each(%replacements) ) {
+		$contents =~ s/$ref/$rep/g;
     }
 	# write back to file
 	open(FILE, "> $file") or die "Couldn't open $file to write"; 
