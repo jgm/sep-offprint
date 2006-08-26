@@ -109,14 +109,14 @@ $current = getcwd;
 # Get all the source files and put them in temp directory $temp
 
 if ($localpath) {
-	$footer = "$localpath/$entryname/";
+    $footer = "$localpath/$entryname/";
     while (<$localpath/$entryname/*.*>) {
       copy($_,$temp) 
     };
     chdir $temp;
 } 
 else {
-	$footer = "http://plato.stanford.edu/entries/$entryname/";
+    $footer = "http://plato.stanford.edu/entries/$entryname/";
     chdir $temp;
     system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/index.html");
     system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/notes.html");
@@ -216,8 +216,8 @@ sub preprocess_html {
                      "&\#148;"  => "&rdquo;",
                      "&\#149;"  => "&bull;",
                      "&\#150;"  => "&minus;", 
-					 "&\#8463;" => "<img alt=\"hbar\" src=\"http:\/\/plato.stanford.edu\/symbols\/hbar.gif\">",
-					 "&\#9633;" => "<img alt=\"Box\" src=\"http:\/\/plato.stanford.edu\/symbols\/Box.gif\">"
+                     "&\#8463;" => "<img alt=\"hbar\" src=\"http:\/\/plato.stanford.edu\/symbols\/hbar.gif\">",
+                     "&\#9633;" => "<img alt=\"Box\" src=\"http:\/\/plato.stanford.edu\/symbols\/Box.gif\">"
 					 );
 	while ( my ($ref, $rep) = each(%replacements) ) {
 		$contents =~ s/$ref/$rep/g;
