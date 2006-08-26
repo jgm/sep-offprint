@@ -216,6 +216,8 @@ sub preprocess_html {
                      "&\#148;"  => "&rdquo;",
                      "&\#149;"  => "&bull;",
                      "&\#150;"  => "&minus;", 
+                     "<sup>&\#9484;<\/sup>" => "<img alt=\"left-corner-quote\" src=\"http:\/\/plato.stanford.edu\/symbols\/l-corner-quote.gif\">",
+                     "<sup>&\#9488;<\/sup>" => "<img alt=\"right-corner-quote\" src=\"http:\/\/plato.stanford.edu\/symbols\/r-corner-quote.gif\">",
                      "&\#8463;" => "<img alt=\"hbar\" src=\"http:\/\/plato.stanford.edu\/symbols\/hbar.gif\">",
                      "&\#9633;" => "<img alt=\"Box\" src=\"http:\/\/plato.stanford.edu\/symbols\/Box.gif\">"
 					 );
