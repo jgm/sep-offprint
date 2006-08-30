@@ -206,8 +206,9 @@ sub preprocess_html {
 		$contents = <FILE>;
 		close(FILE);
 	}
-	# get rid of header stuff
-	$contents =~ s/<body>.*?<h1>/<body><div id="content"><h1>/s;
+	# get rid of header stuff - in index.html, everything between <body>
+    # and <h1>; in notes.html, everything between <body> and <h2>
+	$contents =~ s/<body>.*?<h(1|2)>/<body><div id="content"><h$1>/gs;
     # make publication date into regular paragraph
     $contents =~ s/<br \/><span class="xsmall">(.*)<\/span><\/h1>/<\/h1><p>$1<\/p>/g;
 	# replace unicode character references
@@ -240,6 +241,14 @@ sub preprocess_html {
                      "&\#380;"  => "z", 
                      "&\#381;"  => "Z", 
                      "&\#599;"  => "u", 
+                     "&\#768;"  => "", 
+                     "&\#769;"  => "", 
+                     "&\#770;"  => "", 
+                     "&\#771;"  => "", 
+                     "&\#772;"  => "", 
+                     "&\#773;"  => "", 
+                     "&\#775;"  => "", 
+                     "&\#803;"  => "", 
                      "&\#8209;" => "-", 
                      "&\#8600;" => "<img alt=\"southeast-arrow\" src=\"http:\/\/plato.stanford.edu\/symbols\/searrow.gif\">",
                      "<sup>&\#9484;<\/sup>" => "<img alt=\"left-corner-quote\" src=\"http:\/\/plato.stanford.edu\/symbols\/l-corner-quote.gif\">",
