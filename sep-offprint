@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 #
+# sep-offprint 0.51 - John MacFarlane - August 30, 2006
 # sep-offprint 0.5 - John MacFarlane - August 25, 2006
 # sep-offprint 0.4 - John MacFarlane - August 22, 2006
 # sep-offprint 0.3 - John MacFarlane - May 25, 2005
@@ -207,6 +208,8 @@ sub preprocess_html {
 	}
 	# get rid of header stuff
 	$contents =~ s/<body>.*?<h1>/<body><div id="content"><h1>/s;
+    # make publication date into regular paragraph
+    $contents =~ s/<br \/><span class="xsmall">(.*)<\/span><\/h1>/<\/h1><p>$1<\/p>/g;
 	# replace unicode character references
 	%replacements = (
                      "&\#133;"  => "&hellip;",
@@ -216,6 +219,28 @@ sub preprocess_html {
                      "&\#148;"  => "&rdquo;",
                      "&\#149;"  => "&bull;",
                      "&\#150;"  => "&minus;", 
+                     "&\#257;"  => "a", 
+                     "&\#261;"  => "a", 
+                     "&\#263;"  => "c", 
+                     "&\#269;"  => "c", 
+                     "&\#281;"  => "e", 
+                     "&\#299;"  => "i", 
+                     "&\#321;"  => "L", 
+                     "&\#322;"  => "l", 
+                     "&\#324;"  => "n", 
+                     "&\#333;"  => "o", 
+                     "&\#345;"  => "r", 
+                     "&\#346;"  => "S", 
+                     "&\#347;"  => "s", 
+                     "&\#351;"  => "s", 
+                     "&\#363;"  => "u", 
+                     "&\#365;"  => "u", 
+                     "&\#369;"  => "u", 
+                     "&\#378;"  => "z", 
+                     "&\#380;"  => "z", 
+                     "&\#381;"  => "Z", 
+                     "&\#599;"  => "u", 
+                     "&\#8209;" => "-", 
                      "&\#8600;" => "<img alt=\"southeast-arrow\" src=\"http:\/\/plato.stanford.edu\/symbols\/searrow.gif\">",
                      "<sup>&\#9484;<\/sup>" => "<img alt=\"left-corner-quote\" src=\"http:\/\/plato.stanford.edu\/symbols\/l-corner-quote.gif\">",
                      "<sup>&\#9488;<\/sup>" => "<img alt=\"right-corner-quote\" src=\"http:\/\/plato.stanford.edu\/symbols\/r-corner-quote.gif\">",
