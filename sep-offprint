@@ -95,7 +95,7 @@ $entryname =~ s{http://plato.stanford.edu/entries/}{};
 $entryname =~ s{/.*}{};
 
 if ($help) {&printhelp;};
-if ($version) {die "sep-offprint ver. 0.3\n";}; 
+if ($version) {die "sep-offprint ver. 0.6\n";}; 
 if (not ($pdf or $ps)) {$pdf=1};
 if ($oneup) {$twoup = 0} else {$twoup = 1};
 if (not $fontsize) {$fontsize = "14pt"};
