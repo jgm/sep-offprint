@@ -211,6 +211,9 @@ sub preprocess_html {
 	$contents =~ s/<body>.*?<h(1|2)>/<body><div id="content"><h$1>/gs;
     # make publication date into regular paragraph
     $contents =~ s/<br \/><span class="xsmall">(.*)<\/span><\/h1>/<\/h1><p>$1<\/p>/g;
+	# center copyright notice
+	$contents =~ s/<div id="foot">(.*?)<\/div>/<center>$1<\/center>/gs;
+
 	# replace unicode character references
 	%replacements = (
                      "&\#133;"  => "&hellip;",
