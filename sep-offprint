@@ -2,9 +2,10 @@
 #
 # sep-offprint 0.7 - John MacFarlane - January 23, 2007
 #   + include supplements, if present (thanks to Dan Robins)
-#   + hyperlinks now marked in blue (Dan Robins)
 #   + removed unnecessary call to lwp-rget (Dan Robins)
+#   + added --linkcolor option (JM and Dan Robins)
 #   + added error checking:  error exit if index.html not found
+#   + fixed '--version' and adjusted '--help' output
 #
 # sep-offprint 0.6 - John MacFarlane - August 30, 2006
 # sep-offprint 0.5 - John MacFarlane - August 25, 2006
@@ -39,6 +40,8 @@
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
 
+my $version_number = '0.7';
+
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
 use File::Copy;
@@ -52,21 +55,20 @@ sub printhelp {
 Usage:                 sep-offprint [options] <entry name>
 
 Examples:              sep-offprint russell
-                       sep-offprint frege russell wittgenstein
                        sep-offprint --1up --ps --paper a4 frege
-                       sep-offprint --1up --fontfamily Helvetica frege
 
-Options:
+Options (* indicates a default):
 
 --1up                  print one page per sheet, portrait orientation
---2up                  print two pages per sheet, landscape orientation (default) 
+--2up                  print two pages per sheet, landscape orientation*
 --ps                   produce postscript (PS) output
---pdf                  produce PDF output (default)
---font <font>          use <font> (Times, Helvetica, Palatino, Courier) (default Times)
---size <size>          use <size> (10pt, 12pt, 14pt, 16pt) (default 14pt)
---align <align>        use <align> (left, justified) (default justified)
---paper <papersize>    specify <papersize> (letter, legal, a4) (default letter)
---localpath <path>     look for entry in a subdirectory of <path> on local filesystem
+--pdf                  produce PDF output*
+--font <font>          use <font> (Times*, Helvetica, Palatino, Courier)
+--size <size>          use <size> (10pt, 12pt, 14pt*, 16pt)
+--align <align>        use <align> (left, justified*)
+--paper <papersize>    specify <papersize> (letter*, legal, a4)
+--linkcolor <color>    specify color of hyperlinks (black*, gray, blue, ...)
+--localpath <path>     look for entry in a subdirectory of <path> 
 --help                 this message
 --version              prints version number\n";
 }
@@ -79,9 +81,12 @@ GetOptions( '1up|1' => \$oneup,
             'size=s' => \$fontsize,
             'align=s' => \$textalign,
             'paper=s' => \$papersize,
+            'linkcolor=s' => \$linkcolor,
             'localpath=s' => \$localpath,
             'help|h' => \$help,
             'version|v' => \$version);
+
+if ($version) {die "sep-offprint $version_number\n";}; 
 
 if ($#ARGV < 0) {&printhelp;};
 $entryname = $ARGV[0];
@@ -96,13 +101,13 @@ $entryname =~ s{http://plato.stanford.edu/entries/}{};
 $entryname =~ s{/.*}{};
 
 if ($help) {&printhelp;};
-if ($version) {die "sep-offprint ver. 0.6\n";}; 
 if (not ($pdf or $ps)) {$pdf=1};
 if ($oneup) {$twoup = 0} else {$twoup = 1};
 if (not $fontsize) {$fontsize = "14pt"};
 if (not $fontfamily) {$fontfamily = "Times"};
 if (not $textalign) {$textalign = "justify"};
 if (not $papersize) {$papersize = "letter"};
+if (not $linkcolor) {$linkcolor = "black"};
 
 $temp = tempdir ( CLEANUP => 1 );
 
@@ -161,7 +166,7 @@ BODY {
     text-align: $textalign; 
 }
 A:link {
-    color: blue;
+    color: $linkcolor;
 }
 \@page { 
     margin-left: 2.5cm; 
