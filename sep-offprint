@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # sep-offprint 0.7 - John MacFarlane - January 23, 2007
-#   + fixed script to include supplements, if present (thanks to Dan Robins)
+#   + include supplements, if present (thanks to Dan Robins)
 #   + hyperlinks now marked in blue (Dan Robins)
 #   + removed unnecessary call to lwp-rget (Dan Robins)
 #   + added error checking:  error exit if index.html not found
