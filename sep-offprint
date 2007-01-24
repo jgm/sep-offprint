@@ -1,5 +1,11 @@
 #!/usr/bin/perl -w
 #
+# sep-offprint 0.7 - John MacFarlane - January 23, 2007
+# Incorporated several bug fixes due to Dan Robins:
+#   + fixed script to include supplements, if present
+#   + hyperlinks now marked in blue
+#   + removed unnecessary call to lwp-rget
+#
 # sep-offprint 0.6 - John MacFarlane - August 30, 2006
 # sep-offprint 0.5 - John MacFarlane - August 25, 2006
 # sep-offprint 0.4 - John MacFarlane - August 22, 2006
@@ -12,17 +18,13 @@
 # For example, to get the article on classical logic, which is at
 # http://plato.stanford.edu/entries/logic-classical/, just type
 #
-#   sep-offprint logic-classical
-#
-# if this script is executable and in your path, otherwise
-#
 #   perl sep-offprint logic-classical
 #
-# and it will create logic-classical.pdf. 
+# and it will create logic-classical.pdf.
 #
 # There are many command-line options.  For a list, type
 #
-#   sep-offprint --help
+#   perl sep-offprint --help
 #
 # The programs html2ps and ps2pdf must be in the user's path:
 #
@@ -36,7 +38,6 @@
 #
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
-#
 
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
@@ -112,7 +113,7 @@ $current = getcwd;
 if ($localpath) {
     $footer = "$localpath/$entryname/";
     while (<$localpath/$entryname/*.*>) {
-      copy($_,$temp) 
+      copy($_,$temp)
     };
     chdir $temp;
 } 
@@ -120,17 +121,14 @@ else {
     $footer = "http://plato.stanford.edu/entries/$entryname/";
     chdir $temp;
     system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/index.html");
-    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/notes.html");
 };
 
-#
 # Create blank html file to work around html2ps bug.
 #
 # Without this blank file after notes.html, html2ps will cut off 
 # the last page of an entry if it occurs in the left column in 2up mode.
-# 
 
-$blank = "blankhtml" . time;
+$blank = "blankpage";
 
 open FILE, ">$blank" or die "unable to open $blank: $!";
 
@@ -147,10 +145,8 @@ EOF
 
 close FILE;
 
-#
 # Create a configuration file with appropriate footers
 # and run html2ps and html2pdf on that argument.
-#
 
 $html2psrc = "html2psrc" . time;
 
@@ -161,6 +157,9 @@ BODY {
     font-size: $fontsize; 
     font-family: $fontfamily; 
     text-align: $textalign; 
+}
+A:link {
+    color: blue;
 }
 \@page { 
     margin-left: 2.5cm; 
@@ -191,14 +190,12 @@ close FILE;
 # name of temporary file to hold postscript output of html2ps
 $pstemp = "pstemp";
 
-#
 # preprocess html: takes filename as parameter
 # (1) remove navigation bars, etc.
 # (2) replace &#9633; entity reference with appropriate image 
-#
 
 sub preprocess_html {
-	my $file = $_[0];
+	my $file = $_;
 	# slurp contents of file
 	{
 		local( $/, *FILE ); 
@@ -268,16 +265,12 @@ sub preprocess_html {
 	close(FILE);
 }
 
-preprocess_html("index.html");
-if (-e "notes.html") { 
-	$notes = "notes.html"; 
-	preprocess_html("notes.html"); 
-	} 
-else { 
-	$notes = ""; 
-	};
+# preprocess all the html files in the working (i.e., temp) directory
+opendir(TEMPDIR, ".");
+preprocess_html foreach (grep /.html?$/, readdir TEMPDIR);
+closedir TEMPDIR;
 
-system("html2ps -D -f $html2psrc -o $pstemp index.html $notes $blank");
+system("html2ps -D -U -f $html2psrc -W b -o $pstemp index.html $blank");
 
 if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
 
