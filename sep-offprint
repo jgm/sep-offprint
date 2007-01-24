@@ -116,13 +116,13 @@ if ($localpath) {
       copy($_,$temp)
     };
     chdir $temp;
-    (-e "index.html") or die "Could not find index.html in $localpath/$entryname/";
+    (-e "index.html") or die "Could not find index.html in $localpath/$entryname/\n";
 } 
 else {
     $footer = "http://plato.stanford.edu/entries/$entryname/";
     chdir $temp;
     system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/index.html");
-    (-e "index.html") or die "Could not download files from http://plato.stanford.edu/$entryname/"; 
+    (-e "index.html") or die "Could not download files from http://plato.stanford.edu/entries/$entryname/\nAre you sure you have the right entry name?\n"; 
 };
 
 # Create blank html file to work around html2ps bug.
