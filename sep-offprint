@@ -274,7 +274,7 @@ sub preprocess_html {
 
 # preprocess all the html files in the working (i.e., temp) directory
 opendir(TEMPDIR, ".");
-preprocess_html foreach (grep /.html?$/, readdir TEMPDIR);
+preprocess_html foreach (grep /\.html?$/, readdir TEMPDIR);
 closedir TEMPDIR;
 
 system("html2ps -D -U -f $html2psrc -W b -o $pstemp index.html $blank");
