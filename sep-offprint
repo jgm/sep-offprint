@@ -2,7 +2,7 @@
 #
 # sep-offprint 0.8 - John MacFarlane - February 22, 2007
 #   + strip off "(Stanford Encyclopedia of Philosophy)" from
-#     HTML title (thanks to Ed Zalta)
+#     HTML title (thanks to Uri Nodelman)
 # sep-offprint 0.7 - John MacFarlane - January 23, 2007
 #   + include supplements, if present (thanks to Dan Robins)
 #   + removed unnecessary call to lwp-rget (Dan Robins)
