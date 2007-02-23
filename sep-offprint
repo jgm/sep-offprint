@@ -1,12 +1,14 @@
 #!/usr/bin/perl -w
 #
+# sep-offprint 0.8 - John MacFarlane - February 22, 2007
+#   + strip off "(Stanford Encyclopedia of Philosophy)" from
+#     HTML title (thanks to Ed Zalta)
 # sep-offprint 0.7 - John MacFarlane - January 23, 2007
 #   + include supplements, if present (thanks to Dan Robins)
 #   + removed unnecessary call to lwp-rget (Dan Robins)
 #   + added --linkcolor option (JM and Dan Robins)
 #   + added error checking:  error exit if index.html not found
 #   + fixed '--version' and adjusted '--help' output
-#
 # sep-offprint 0.6 - John MacFarlane - August 30, 2006
 # sep-offprint 0.5 - John MacFarlane - August 25, 2006
 # sep-offprint 0.4 - John MacFarlane - August 22, 2006
@@ -213,6 +215,8 @@ sub preprocess_html {
 	# get rid of header stuff - in index.html, everything between <body>
     # and <h1>; in notes.html, everything between <body> and <h2>
 	$contents =~ s/<body>.*?<h(1|2)>/<body><div id="content"><h$1>/gs;
+    # get rid of "(Stanford Encyclopedia of Philosophy)" in title:
+    $contents =~ s/<title>(.*)\ \(Stanford Encyclopedia of Philosophy\)/<title>$1/;
     # make publication date into regular paragraph
     $contents =~ s/<br \/><span class="xsmall">(.*)<\/span><\/h1>/<\/h1><p>$1<\/p>/g;
 	# center copyright notice
