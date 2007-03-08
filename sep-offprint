@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 #
+# sep-offprint 0.9 - John MacFarlane - March 8, 2007
+#   + fixed regex for stripping off SEP header (thanks to George Galfalvi)
 # sep-offprint 0.8 - John MacFarlane - February 22, 2007
 #   + strip off "(Stanford Encyclopedia of Philosophy)" from
 #     HTML title (thanks to Uri Nodelman)
@@ -42,7 +44,7 @@
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
 
-my $version_number = '0.7';
+my $version_number = '0.9';
 
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
@@ -214,7 +216,7 @@ sub preprocess_html {
 	}
 	# get rid of header stuff - in index.html, everything between <body>
     # and <h1>; in notes.html, everything between <body> and <h2>
-	$contents =~ s/<body>.*?<h(1|2)>/<body><div id="content"><h$1>/gs;
+	$contents =~ s/<body>.*?<!--DO NOT MODIFY THIS LINE AND ABOVE-->/<body><div id="content"><div id="aueditable">/gs;
     # get rid of "(Stanford Encyclopedia of Philosophy)" in title:
     $contents =~ s/<title>(.*)\ \(Stanford Encyclopedia of Philosophy\)/<title>$1/;
     # make publication date into regular paragraph
