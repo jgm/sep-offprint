@@ -339,9 +339,9 @@ $orderedHtmlFiles =~ s/(index|notes)\.html//g;
 system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
 
 # create pdf if requested
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print STDERR "Created $entryname.pdf\n";};
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
 
 # copy ps file if requested
-if ($ps) {copy($pstemp, "$current/$entryname.ps") && print STDERR "Created $entryname.ps\n";};
+if ($ps) {copy($pstemp, "$current/$entryname.ps") && print "Created $entryname.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
