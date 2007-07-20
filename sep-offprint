@@ -6,6 +6,7 @@
 #   + include supplements in the ordered they are linked to
 #   + always put notes at the end
 #   + preprocess supplements and notes, in addition to index.html 
+#   + removed --localpath option; use file:/// URL instead
 # sep-offprint 0.9 - John MacFarlane - March 8, 2007
 #   + fixed regex for stripping off SEP header (thanks to George Galfalvi)
 # sep-offprint 0.8 - John MacFarlane - February 22, 2007
@@ -82,7 +83,6 @@ Options (* indicates a default):
 --align <align>        use <align> (left, justified*)
 --paper <papersize>    specify <papersize> (letter*, legal, a4)
 --linkcolor <color>    specify color of hyperlinks (black*, gray, blue, ...)
---localpath <path>     look for entry in a subdirectory of <path> 
 --help                 this message
 --version              prints version number\n";
 }
@@ -97,6 +97,14 @@ sub slurp {
 	my $contents = <FILE>;
 	close(FILE);
     return $contents;
+}
+
+# uniq - remove duplicates from an array, preserving the order of the original
+
+sub uniq {
+    my @in = @_;
+    undef %seen;
+    grep(!$seen{$_}++, @in); 
 }
 
 # preprocess html - preprocess HTML file, stripping out navigation bars,
@@ -187,25 +195,34 @@ GetOptions( '1up|1' => \$oneup,
             'align=s' => \$textalign,
             'paper=s' => \$papersize,
             'linkcolor=s' => \$linkcolor,
-            'localpath=s' => \$localpath,
             'help|h' => \$help,
             'version|v' => \$version);
 
 if ($version) {die "sep-offprint $version_number\n";}; 
 
 if ($#ARGV < 0) {&printhelp;};
-$entryname = $ARGV[0];
+$sourceArg = $ARGV[0];
 
 # derive entry name from argument:
+$entryname = $sourceArg;
+
 # remove uppercase and spaces
 $entryname =~ tr/A-Z/a-z/;
 $entryname =~ tr/ /-/;
 
-# remove SEP url if specified
-$entryname =~ s{http://plato.stanford.edu/entries/}{};
-
 # remove /index.html if specified
-$entryname =~ s{/.*}{};
+$entryname =~ s{/index\.html$}{};
+
+# remove URL prefix (everything before slash)
+$entryname =~ s{.*/}{};
+
+if ($sourceArg =~ /^file:/) {
+  $source = $sourceArg;   # file URL was specified - use local source
+}
+else {
+  $source = "http://plato.stanford.edu/entries/$entryname/";
+}
+$footer = $source;
 
 if ($help) {&printhelp;};
 if (not ($pdf or $ps)) {$pdf=1};
@@ -223,21 +240,11 @@ $current = getcwd;  # working directory from which sep-offprint is run
 # get all the source files and put them in temp directory,
 # then change to temp directory
 
-if ($localpath) {
-    $footer = "$localpath/$entryname/";
-    while (<$localpath/$entryname/*.*>) {
-      copy($_,$temp)
-      };
-    chdir $temp;
-    (-e "index.html") or die "Could not find index.html in $localpath/$entryname/\n";
-    } 
-else {
-    $footer = "http://plato.stanford.edu/entries/$entryname/";
-    chdir $temp;
-    # download all the HTML files
-    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/");
-    (-e "index.html") or die "Could not download files from http://plato.stanford.edu/entries/$entryname/\nAre you sure you have the right entry name?\n"; 
-    };
+chdir $temp;
+# download all the HTML files
+print STDERR "Retrieving files...\n";
+$downloadedFiles = `lwp-rget --limit=200 $source/index.html 2>&1`;
+(-e "index.html") or die "Could not retrieve files from $source\nAre you sure you have the right entry name?\n"; 
 
 # create blank html file to work around html2ps bug.
 # without this blank file after notes.html, html2ps will cut off 
@@ -311,20 +318,10 @@ preprocess_html foreach <*.html>;
 # determine the order in which the HTML pages should be processed:
 #
 
-# go through index.html and make a list of the .html files called
-# in order
-
-my $indexContents = slurp "index.html";
-my @indexWords = split(/"|#/, $indexContents);       # ...a href=" blah.html #yada"...
-my @localHtmlRefs = grep(/^\w+\.html$/, @indexWords);
-
-# this is the perl version of uniq -- remove duplicates,
-# preserving the order of the original
-undef %seen;
-my @uniqueHtmlRefs = grep(!$seen{$_}++, @localHtmlRefs); 
+@htmlFiles = $downloadedFiles =~ /^.*\.html$/gim;
 
 # make a space-separated list of the HTML files to process, in order
-my $orderedHtmlFiles = join(' ', @uniqueHtmlRefs);
+my $orderedHtmlFiles = join(' ', @htmlFiles);
 
 # set $notes to "notes.html" if there are notes
 my $notes = "";
@@ -334,6 +331,8 @@ if ($orderedHtmlFiles =~ /notes\.html/) {
 
 # discard index.html and notes.html from the list
 $orderedHtmlFiles =~ s/(index|notes)\.html//g;
+
+print STDERR "Creating offprint...\n";
 
 # call html2ps to create the postscript version of the entry
 system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
