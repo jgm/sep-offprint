@@ -1,5 +1,11 @@
 #!/usr/bin/perl -w
 #
+# Version history:
+#
+# sep-offprint 1.0 - John MacFarlane - July 19, 2007
+#   + include supplements in the ordered they are linked to
+#   + always put notes at the end
+#   + preprocess supplements and notes, in addition to index.html 
 # sep-offprint 0.9 - John MacFarlane - March 8, 2007
 #   + fixed regex for stripping off SEP header (thanks to George Galfalvi)
 # sep-offprint 0.8 - John MacFarlane - February 22, 2007
@@ -15,6 +21,8 @@
 # sep-offprint 0.5 - John MacFarlane - August 25, 2006
 # sep-offprint 0.4 - John MacFarlane - August 22, 2006
 # sep-offprint 0.3 - John MacFarlane - May 25, 2005
+#
+# Synopsis:
 #
 # produces a PDF or postscript "offprint" of a Stanford 
 # Encyclopedia of Philosophy (SEP) article
@@ -44,12 +52,14 @@
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
 
-my $version_number = '0.9';
+my $version_number = '1.0';
 
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
 use File::Copy;
 use Cwd;
+
+# printhelp - prints a usage message
 
 sub printhelp {
     die 
@@ -77,151 +87,36 @@ Options (* indicates a default):
 --version              prints version number\n";
 }
 
-GetOptions( '1up|1' => \$oneup,
-            '2up|2' => \$twoup,
-            'ps' => \$ps,
-            'pdf' => \$pdf,
-            'font=s' => \$fontfamily,
-            'size=s' => \$fontsize,
-            'align=s' => \$textalign,
-            'paper=s' => \$papersize,
-            'linkcolor=s' => \$linkcolor,
-            'localpath=s' => \$localpath,
-            'help|h' => \$help,
-            'version|v' => \$version);
+# slurp - slurps contents of a file and returns as a string;
+# takes filename as argument 
 
-if ($version) {die "sep-offprint $version_number\n";}; 
-
-if ($#ARGV < 0) {&printhelp;};
-$entryname = $ARGV[0];
-
-# remove uppercase and spaces:
-$entryname =~ tr/A-Z/a-z/;
-$entryname =~ tr/ /-/;
-
-# remove SEP url if specified:
-$entryname =~ s{http://plato.stanford.edu/entries/}{};
-# remove /index.html if specified:
-$entryname =~ s{/.*}{};
-
-if ($help) {&printhelp;};
-if (not ($pdf or $ps)) {$pdf=1};
-if ($oneup) {$twoup = 0} else {$twoup = 1};
-if (not $fontsize) {$fontsize = "14pt"};
-if (not $fontfamily) {$fontfamily = "Times"};
-if (not $textalign) {$textalign = "justify"};
-if (not $papersize) {$papersize = "letter"};
-if (not $linkcolor) {$linkcolor = "black"};
-
-$temp = tempdir ( CLEANUP => 1 );
-
-$current = getcwd;
-
-# Get all the source files and put them in temp directory $temp
-
-if ($localpath) {
-    $footer = "$localpath/$entryname/";
-    while (<$localpath/$entryname/*.*>) {
-      copy($_,$temp)
-    };
-    chdir $temp;
-    (-e "index.html") or die "Could not find index.html in $localpath/$entryname/\n";
-} 
-else {
-    $footer = "http://plato.stanford.edu/entries/$entryname/";
-    chdir $temp;
-    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/index.html");
-    (-e "index.html") or die "Could not download files from http://plato.stanford.edu/entries/$entryname/\nAre you sure you have the right entry name?\n"; 
-};
-
-# Create blank html file to work around html2ps bug.
-#
-# Without this blank file after notes.html, html2ps will cut off 
-# the last page of an entry if it occurs in the left column in 2up mode.
-
-$blank = "blankpage";
-
-open FILE, ">$blank" or die "unable to open $blank: $!";
-
-print FILE <<EOF; 
-<html>
-<head>
-<title>&nbsp;</title>
-</head>
-<body>
-<p>&nbsp;</p>
-</body>
-</html>
-EOF
-
-close FILE;
-
-# Create a configuration file with appropriate footers
-# and run html2ps and html2pdf on that argument.
-
-$html2psrc = "html2psrc" . time;
-
-open FILE, ">$html2psrc" or die "unable to open $html2psrc: $!";
-
-print FILE <<EOF; 
-BODY {
-    font-size: $fontsize; 
-    font-family: $fontfamily; 
-    text-align: $textalign; 
+sub slurp {
+    my $file = shift;
+    local( $/, *FILE ); 
+	open(FILE, "< $file") or die "Couldn't open $file to read";
+	my $contents = <FILE>;
+	close(FILE);
+    return $contents;
 }
-A:link {
-    color: $linkcolor;
-}
-\@page { 
-    margin-left: 2.5cm; 
-    margin-right: 2.5cm; 
-    margin-top: 2.5cm; 
-    margin-bottom: 2.5cm; 
-}
-\@html2ps { 
-    option { 
-        twoup: $twoup; 
-        landscape: $twoup; 
-        number: 0; 
-    } 
-    paper { type: $papersize } 
-	header {
-	    right: "STANFORD ENCYCLOPEDIA OF PHILOSOPHY";
-		left: \$T;
-    }
-    footer {
-        left: \$N;
-        right: $footer;
-    }
-}
-EOF
 
-close FILE;
-
-# name of temporary file to hold postscript output of html2ps
-$pstemp = "pstemp";
-
-# preprocess html: takes filename as parameter
-# (1) remove navigation bars, etc.
-# (2) replace &#9633; entity reference with appropriate image 
+# preprocess html - preprocess HTML file, stripping out navigation bars,
+# etc., and replacing entity references with appropriate characters or images.
+# takes filename as argument
 
 sub preprocess_html {
-	my $file = $_;
-	# slurp contents of file
-	{
-		local( $/, *FILE ); 
-		open(FILE, "< $file") or die "Couldn't open $file to read";
-		$contents = <FILE>;
-		close(FILE);
-	}
-	# get rid of header stuff - in index.html, everything between <body>
-    # and <h1>; in notes.html, everything between <body> and <h2>
+    my $file = $_;
+    my $contents = slurp $file;
+
+    # get rid of header stuff 
 	$contents =~ s/<body>.*?<!--DO NOT MODIFY THIS LINE AND ABOVE-->/<body><div id="content"><div id="aueditable">/gs;
+
     # get rid of "(Stanford Encyclopedia of Philosophy)" in title:
     $contents =~ s/<title>(.*)\ \(Stanford Encyclopedia of Philosophy\)/<title>$1/;
+
     # make publication date into regular paragraph
     $contents =~ s/<br \/><span class="xsmall">(.*)<\/span><\/h1>/<\/h1><p>$1<\/p>/g;
-	# center copyright notice
+
+    # center copyright notice
 	$contents =~ s/<div id="foot">(.*?)<\/div>/<center>$1<\/center>/gs;
 
 	# replace unicode character references
@@ -272,21 +167,181 @@ sub preprocess_html {
 	while ( my ($ref, $rep) = each(%replacements) ) {
 		$contents =~ s/$ref/$rep/g;
     }
-	# write back to file
+	
+    # write back to file
 	open(FILE, "> $file") or die "Couldn't open $file to write"; 
 	print FILE $contents;
 	close(FILE);
 }
 
+#
+# parse command-line options
+#
+
+GetOptions( '1up|1' => \$oneup,
+            '2up|2' => \$twoup,
+            'ps' => \$ps,
+            'pdf' => \$pdf,
+            'font=s' => \$fontfamily,
+            'size=s' => \$fontsize,
+            'align=s' => \$textalign,
+            'paper=s' => \$papersize,
+            'linkcolor=s' => \$linkcolor,
+            'localpath=s' => \$localpath,
+            'help|h' => \$help,
+            'version|v' => \$version);
+
+if ($version) {die "sep-offprint $version_number\n";}; 
+
+if ($#ARGV < 0) {&printhelp;};
+$entryname = $ARGV[0];
+
+# derive entry name from URL:
+# remove uppercase and spaces
+$entryname =~ tr/A-Z/a-z/;
+$entryname =~ tr/ /-/;
+
+# remove SEP url if specified
+$entryname =~ s{http://plato.stanford.edu/entries/}{};
+
+# remove /index.html if specified
+$entryname =~ s{/.*}{};
+
+if ($help) {&printhelp;};
+if (not ($pdf or $ps)) {$pdf=1};
+if ($oneup) {$twoup = 0} else {$twoup = 1};
+if (not $fontsize) {$fontsize = "14pt"};
+if (not $fontfamily) {$fontfamily = "Times"};
+if (not $textalign) {$textalign = "justify"};
+if (not $papersize) {$papersize = "letter"};
+if (not $linkcolor) {$linkcolor = "black"};
+
+# create temporary directory
+$temp = tempdir ( CLEANUP => 1 );
+$current = getcwd;  # working directory from which sep-offprint is run
+
+# get all the source files and put them in temp directory,
+# then change to temp directory
+
+if ($localpath) {
+    $footer = "$localpath/$entryname/";
+    while (<$localpath/$entryname/*.*>) {
+      copy($_,$temp)
+      };
+    chdir $temp;
+    (-e "index.html") or die "Could not find index.html in $localpath/$entryname/\n";
+    } 
+else {
+    $footer = "http://plato.stanford.edu/entries/$entryname/";
+    chdir $temp;
+    # download all the HTML files
+    system("lwp-rget --quiet http://plato.stanford.edu/entries/$entryname/");
+    (-e "index.html") or die "Could not download files from http://plato.stanford.edu/entries/$entryname/\nAre you sure you have the right entry name?\n"; 
+    };
+
+# create blank html file to work around html2ps bug.
+# without this blank file after notes.html, html2ps will cut off 
+# the last page of an entry if it occurs in the left column in 2up mode.
+
+$blank = "blankpage";
+
+open FILE, ">$blank" or die "unable to open $blank: $!";
+
+print FILE <<EOF; 
+<html>
+<head>
+<title>&nbsp;</title>
+</head>
+<body>
+<p>&nbsp;</p>
+</body>
+</html>
+EOF
+
+close FILE;
+
+# create a configuration file with appropriate footers
+
+$html2psrc = "html2psrc";
+
+open FILE, ">$html2psrc" or die "unable to open $html2psrc: $!";
+
+print FILE <<EOF; 
+BODY {
+    font-size: $fontsize; 
+    font-family: $fontfamily; 
+    text-align: $textalign; 
+}
+A:link {
+    color: $linkcolor;
+}
+\@page { 
+    margin-left: 2.5cm; 
+    margin-right: 2.5cm; 
+    margin-top: 2.5cm; 
+    margin-bottom: 2.5cm; 
+}
+\@html2ps { 
+    option { 
+        twoup: $twoup; 
+        landscape: $twoup; 
+        number: 0; 
+    } 
+    paper { type: $papersize } 
+	header {
+	    right: "STANFORD ENCYCLOPEDIA OF PHILOSOPHY";
+		left: \$T;
+    }
+    footer {
+        left: \$N;
+        right: $footer;
+    }
+}
+EOF
+
+close FILE;
+
+# name of temporary file to hold postscript output of html2ps
+$pstemp = "pstemp";
+
 # preprocess all the html files in the working (i.e., temp) directory
-opendir(TEMPDIR, ".");
-preprocess_html foreach (grep /\.html?$/, readdir TEMPDIR);
-closedir TEMPDIR;
+preprocess_html foreach <*.html>; 
 
-system("html2ps -D -U -f $html2psrc -W b -o $pstemp index.html $blank");
+#
+# determine the order in which the HTML pages should be processed:
+#
 
+# go through index.html and make a list of the .html files called
+# in order
+
+my $indexContents = slurp "index.html";
+my @indexWords = split(/"|#/, $indexContents);       # ...a href=" blah.html #yada"...
+my @localHtmlRefs = grep(/^\w+\.html$/, @indexWords);
+
+# this is the perl version of uniq -- remove duplicates,
+# preserving the order of the original
+undef %seen;
+my @uniqueHtmlRefs = grep(!$seen{$_}++, @localHtmlRefs); 
+
+# make a space-separated list of the HTML files to process, in order
+my $orderedHtmlFiles = join(' ', @uniqueHtmlRefs);
+
+# set $notes to "notes.html" if there are notes
+my $notes = "";
+if ($orderedHtmlFiles =~ /notes\.html/) {
+  $notes = "notes.html"
+  }
+
+# discard index.html and notes.html from the list
+$orderedHtmlFiles =~ s/(index|notes)\.html//g;
+
+# call html2ps to create the postscript version of the entry
+system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
+
+# create pdf if requested
 if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
 
+# copy ps file if requested
 if ($ps) {copy($pstemp, "$current/$entryname.ps") && print "Created $entryname.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
