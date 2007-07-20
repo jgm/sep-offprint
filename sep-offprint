@@ -59,7 +59,7 @@ use File::Temp qw/ tempdir /;
 use File::Copy;
 use Cwd;
 
-# printhelp - prints a usage message
+# printhelp - returns a usage message
 
 sub printhelp {
     die 
@@ -196,7 +196,7 @@ if ($version) {die "sep-offprint $version_number\n";};
 if ($#ARGV < 0) {&printhelp;};
 $entryname = $ARGV[0];
 
-# derive entry name from URL:
+# derive entry name from argument:
 # remove uppercase and spaces
 $entryname =~ tr/A-Z/a-z/;
 $entryname =~ tr/ /-/;
@@ -339,9 +339,9 @@ $orderedHtmlFiles =~ s/(index|notes)\.html//g;
 system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
 
 # create pdf if requested
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print STDERR "Created $entryname.pdf\n";};
 
 # copy ps file if requested
-if ($ps) {copy($pstemp, "$current/$entryname.ps") && print "Created $entryname.ps\n";};
+if ($ps) {copy($pstemp, "$current/$entryname.ps") && print STDERR "Created $entryname.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
