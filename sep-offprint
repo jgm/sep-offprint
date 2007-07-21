@@ -203,6 +203,9 @@ if ($version) {die "sep-offprint $version_number\n";};
 if ($#ARGV < 0) {&printhelp;};
 $sourceArg = $ARGV[0];
 
+# remove trailing slash, if any, from sourceArg:
+$sourceArg =~ s{/$}{};
+
 # derive entry name from argument:
 $entryname = $sourceArg;
 
