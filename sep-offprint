@@ -5,7 +5,6 @@
 # sep-offprint 1.0 - John MacFarlane - July 19, 2007
 #   + include supplements in the ordered they are linked to
 #   + always put notes at the end
-#   + preprocess supplements and notes, in addition to index.html 
 #   + removed --localpath option; use file:/// URL instead
 # sep-offprint 0.9 - John MacFarlane - March 8, 2007
 #   + fixed regex for stripping off SEP header (thanks to George Galfalvi)
