@@ -2,6 +2,8 @@
 #
 # Version history:
 #
+# sep-offprint 1.1 - John MacFarlane - August 16, 2007
+#   + added --output|o option to specify output filename
 # sep-offprint 1.0 - John MacFarlane - July 19, 2007
 #   + include supplements in the ordered they are linked to
 #   + always put notes at the end
@@ -77,6 +79,7 @@ Options (* indicates a default):
 --2up                  print two pages per sheet, landscape orientation*
 --ps                   produce postscript (PS) output
 --pdf                  produce PDF output*
+--output <filename>    name of output file (defaults to <entryname>.ps|pdf)
 --font <font>          use <font> (Times*, Helvetica, Palatino, Courier)
 --size <size>          use <size> (10pt, 12pt, 14pt*, 16pt)
 --align <align>        use <align> (left, justified*)
@@ -189,6 +192,7 @@ GetOptions( '1up|1' => \$oneup,
             '2up|2' => \$twoup,
             'ps' => \$ps,
             'pdf' => \$pdf,
+            'output|o=s' => \$outfile,
             'font=s' => \$fontfamily,
             'size=s' => \$fontsize,
             'align=s' => \$textalign,
@@ -230,6 +234,7 @@ if ($help) {&printhelp;};
 if (not ($pdf or $ps)) {$pdf=1};
 if ($oneup) {$twoup = 0} else {$twoup = 1};
 if (not $fontsize) {$fontsize = "14pt"};
+if (not $outfile) {$outfile = $entryname} else {$outfile =~ s/\.[^.]*$//};
 if (not $fontfamily) {$fontfamily = "Times"};
 if (not $textalign) {$textalign = "justify"};
 if (not $papersize) {$papersize = "letter"};
@@ -340,9 +345,9 @@ print STDERR "Creating offprint...\n";
 system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
 
 # create pdf if requested
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$entryname.pdf") || print "Created $entryname.pdf\n";};
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$outfile.pdf") || print "Created $outfile.pdf\n";};
 
 # copy ps file if requested
-if ($ps) {copy($pstemp, "$current/$entryname.ps") && print "Created $entryname.ps\n";};
+if ($ps) {copy($pstemp, "$current/$outfile.ps") && print "Created $outfile.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
