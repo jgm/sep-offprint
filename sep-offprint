@@ -2,6 +2,9 @@
 #
 # Version history:
 #
+# sep-offprint 1.11 - John MacFarlane - August 16, 2007
+#   + use File::Spec and File::Basename for platform-independent
+#     manipulation of files and directories.
 # sep-offprint 1.1 - John MacFarlane - August 16, 2007
 #   + added --output|o option to specify output filename
 # sep-offprint 1.0 - John MacFarlane - July 19, 2007
@@ -59,7 +62,8 @@ my $version_number = '1.0';
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
 use File::Copy;
-use Cwd;
+use File::Basename;
+use File::Spec;
 
 # printhelp - returns a usage message
 
@@ -230,19 +234,25 @@ else {
 }
 $footer = $source;
 
+$current = File::Spec->curdir;  # working directory from which sep-offprint is run
+
 if ($help) {&printhelp;};
 if (not ($pdf or $ps)) {$pdf=1};
 if ($oneup) {$twoup = 0} else {$twoup = 1};
 if (not $fontsize) {$fontsize = "14pt"};
-if (not $outfile) {$outfile = $entryname} else {$outfile =~ s/\.[^.]*$//};
+if (not $outfile) { $outfile = $entryname; }
 if (not $fontfamily) {$fontfamily = "Times"};
 if (not $textalign) {$textalign = "justify"};
 if (not $papersize) {$papersize = "letter"};
 if (not $linkcolor) {$linkcolor = "black"};
 
+# strip .pdf or .ps extension from outfile name, and add path:
+my($filename, $directories, $suffix) = fileparse($outfile,qr/\.pdf|\.ps/);
+if (not $directories) { $directories = $current };
+my $outpath = File::Spec->rel2abs(File::Spec->catfile($directories,$filename));
+
 # create temporary directory
 $temp = tempdir ( CLEANUP => 1 );
-$current = getcwd;  # working directory from which sep-offprint is run
 
 # get all the source files and put them in temp directory,
 # then change to temp directory
@@ -345,9 +355,9 @@ print STDERR "Creating offprint...\n";
 system("html2ps -D -U -f $html2psrc -o $pstemp index.html " . $orderedHtmlFiles . " $notes $blank");
 
 # create pdf if requested
-if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $current/$outfile.pdf") || print "Created $outfile.pdf\n";};
+if ($pdf) {system("ps2pdf -sPAPERSIZE=$papersize $pstemp $outpath.pdf") || print "Created $outpath.pdf\n";};
 
 # copy ps file if requested
-if ($ps) {copy($pstemp, "$current/$outfile.ps") && print "Created $outfile.ps\n";};
+if ($ps) {copy($pstemp, "$outpath.ps") && print "Created $outpath.ps\n";};
 
 # note: temporary directory will be deleted automatically on exit
