@@ -57,7 +57,7 @@
 # For more information and updates, see 
 # http://philosophy.berkeley.edu/macfarlane/sep-offprint.html
 
-my $version_number = '1.0';
+my $version_number = '1.11';
 
 use Getopt::Long;
 use File::Temp qw/ tempdir /;
