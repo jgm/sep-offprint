@@ -56,12 +56,12 @@ Options (* indicates a default):
 --2up                  print two pages per sheet, landscape orientation*
 --ps                   produce postscript (PS) output
 --pdf                  produce PDF output*
---output <filename>    name of output file (defaults to <entryname>.ps|pdf)
---font <font>          use <font> (Times*, Helvetica, Palatino, Courier)
---size <size>          use <size> (10pt, 12pt, 14pt*, 16pt)
---align <align>        use <align> (left, justified*)
---paper <papersize>    specify <papersize> (letter*, legal, a4)
---linkcolor <color>    specify color of hyperlinks (black*, gray, blue, ...)
+--output FILENAME      name of output file (defaults to ENTRYNAME.ps|pdf)
+--font FONT            specify font (Times*, Helvetica, Palatino, Courier)
+--size SIZE            specify font size (10pt, 12pt, 14pt*, 16pt)
+--align ALIGN          specify alignment (left, justified*)
+--paper PAPERSIZE      specify paper size (letter*, legal, a4)
+--linkcolor COLOR      specify color of hyperlinks (black*, gray, blue, ...)
 --help                 this message
 --version              prints version number\n";
 }
