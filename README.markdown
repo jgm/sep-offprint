@@ -13,9 +13,12 @@ improve it, I would appreciate hearing about it.
 Installing sep-offprint
 -----------------------
 
-First, download this Perl script: [`sep-offprint`](sep-offprint)
+You can download `sep-offprint` [here](http://github.com/jgm/sep-offprint/tarball/master)
+or clone the git repository:
 
-To use the script, you will need Perl and two (free) external
+    git://github.com/jgm/sep-offprint.git
+
+To use the `sep-offprint` script, you will need Perl and two (free) external
 programs:
 
 -   [Ghostscript](http://www.cs.wisc.edu/~ghost/doc/AFPL/get851.htm)
