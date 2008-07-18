@@ -1,32 +1,5 @@
 #!/usr/bin/perl -w
-#
-# Version history:
-#
-# sep-offprint 1.11 - John MacFarlane - August 16, 2007
-#   + use File::Spec and File::Basename for platform-independent
-#     manipulation of files and directories.
-# sep-offprint 1.1 - John MacFarlane - August 16, 2007
-#   + added --output|o option to specify output filename
-# sep-offprint 1.0 - John MacFarlane - July 19, 2007
-#   + include supplements in the ordered they are linked to
-#   + always put notes at the end
-#   + removed --localpath option; use file:/// URL instead
-# sep-offprint 0.9 - John MacFarlane - March 8, 2007
-#   + fixed regex for stripping off SEP header (thanks to George Galfalvi)
-# sep-offprint 0.8 - John MacFarlane - February 22, 2007
-#   + strip off "(Stanford Encyclopedia of Philosophy)" from
-#     HTML title (thanks to Uri Nodelman)
-# sep-offprint 0.7 - John MacFarlane - January 23, 2007
-#   + include supplements, if present (thanks to Dan Robins)
-#   + removed unnecessary call to lwp-rget (Dan Robins)
-#   + added --linkcolor option (JM and Dan Robins)
-#   + added error checking:  error exit if index.html not found
-#   + fixed '--version' and adjusted '--help' output
-# sep-offprint 0.6 - John MacFarlane - August 30, 2006
-# sep-offprint 0.5 - John MacFarlane - August 25, 2006
-# sep-offprint 0.4 - John MacFarlane - August 22, 2006
-# sep-offprint 0.3 - John MacFarlane - May 25, 2005
-#
+
 # Synopsis:
 #
 # produces a PDF or postscript "offprint" of a Stanford 
